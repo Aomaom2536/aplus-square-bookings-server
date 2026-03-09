@@ -93,8 +93,8 @@ app.post("/vapi/square/book", async (req, res) => {
       })
     });
 
-    const data = await squareResponse.json().catch(() => ());
-
+const data = await squareResponse.json().catch(() => ());
+    
     if (!squareResponse.ok) {
       return res.status(squareResponse.status).json({
         error: "Square booking failed",
