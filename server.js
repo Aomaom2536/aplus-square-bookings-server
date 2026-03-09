@@ -1,29 +1,29 @@
+import express from "express";
+
+const app = express();
+app.use(express.json());
+
+// Health check
+app.get("/", (_req, res) => {
+  res.status(200).send("ok");
+});
+
+// Browser test route
+app.get("/square/book", (_req, res) => {
+  res
+    .status(200)
+    .send("Square booking endpoint is live. Use POST /vapi/square/book to create a booking.");
+});
+
+// Booking endpoint
 app.post("/vapi/square/book", async (req, res) => {
-  const toolCallId =
-    req.body?.message?.toolCallList?.[0]?.id ||
-    req.body?.toolCallId ||
-    "unknown_tool_call";
-
   try {
-    const args =
-      req.body?.message?.toolCallList?.[0]?.arguments ||
-      req.body ||
-      {};
-
-    const { startAt, customerName, customerPhone, notes } = args;
+    const { startAt, customerName, customerPhone, notes } = req.body || {};
 
     if (!startAt || !customerName || !customerPhone) {
-      return res.status(200).json({
-        results: [
-          {
-            toolCallId,
-            result: JSON.stringify({
-              success: false,
-              error: "Missing required fields",
-              required: ["startAt", "customerName", "customerPhone"]
-            })
-          }
-        ]
+      return res.status(400).json({
+        error: "Missing required fields",
+        required: ["startAt", "customerName", "customerPhone"]
       });
     }
 
@@ -31,7 +31,6 @@ app.post("/vapi/square/book", async (req, res) => {
     const SQUARE_LOCATION_ID = process.env.SQUARE_LOCATION_ID;
     const SQUARE_SERVICE_VARIATION_ID = process.env.SQUARE_SERVICE_VARIATION_ID;
     const SQUARE_VERSION = process.env.SQUARE_VERSION || "2023-10-18";
-    const DURATION_MINUTES = Number(process.env.DURATION_MINUTES || 60);
 
     const squareResponse = await fetch("https://connect.squareup.com/v2/bookings", {
       method: "POST",
@@ -47,7 +46,7 @@ app.post("/vapi/square/book", async (req, res) => {
           appointment_segments: [
             {
               service_variation_id: SQUARE_SERVICE_VARIATION_ID,
-              duration_minutes: DURATION_MINUTES
+              duration_minutes: 60
             }
           ],
           customer_note: notes || `Booked by AI for ${customerName} (${customerPhone})`
@@ -57,30 +56,29 @@ app.post("/vapi/square/book", async (req, res) => {
 
     const data = await squareResponse.json().catch(() => ({}));
 
+    if (!squareResponse.ok) {
+      return res.status(squareResponse.status).json({
+        error: "Square booking failed",
+        squareResponse: data
+      });
+    }
+
     return res.status(200).json({
-      results: [
-        {
-          toolCallId,
-          result: JSON.stringify({
-            success: squareResponse.ok,
-            squareStatus: squareResponse.status,
-            booking: data.booking || null,
-            response: data
-          })
-        }
-      ]
+      success: true,
+      booking: data.booking || data
     });
+
   } catch (err) {
-    return res.status(200).json({
-      results: [
-        {
-          toolCallId,
-          result: JSON.stringify({
-            success: false,
-            error: err?.message || String(err)
-          })
-        }
-      ]
+    console.error("Booking error:", err);
+    return res.status(500).json({
+      error: "Server error",
+      message: err?.message || String(err)
     });
   }
+});
+
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`A-Plus Air booking server running on port ${PORT}`);
 });
