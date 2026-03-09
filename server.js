@@ -8,6 +8,10 @@ app.get("/", (_req, res) => {
   res.status(200).send("ok");
 });
 
+app.get("/square/book", (_req, res) => {
+  res.status(200).send("Square booking endpoint is live. Use POST to create a booking.");
+});
+
 // Booking endpoint
 app.post("/vapi/square/book", async (req, res) => {
   try {
