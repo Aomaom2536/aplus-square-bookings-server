@@ -30,7 +30,7 @@ app.post("/vapi/square/availability", async (req, res) => {
       });
     }
 
-    // Stub response for now (no fake booking)
+    // Stub response for now
     return res.json({
       available: false,
       slots: []
@@ -46,7 +46,6 @@ app.post("/vapi/square/book", async (req, res) => {
   try {
     const { startAt, customerName, customerPhone, notes } = req.body || {};
 
-    // Validate required fields
     if (!startAt || !customerName || !customerPhone) {
       return res.status(400).json({
         error: "Missing required fields",
@@ -75,7 +74,7 @@ app.post("/vapi/square/book", async (req, res) => {
       method: "POST",
       headers: {
         "Square-Version": SQUARE_VERSION,
-        Authorization: `Bearer ${SQUARE_ACCESS_TOKEN}`,
+        "Authorization": `Bearer ${SQUARE_ACCESS_TOKEN}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
@@ -93,8 +92,8 @@ app.post("/vapi/square/book", async (req, res) => {
       })
     });
 
-const data = await squareResponse.json().catch(() => ());
-    
+    const data = await squareResponse.json().catch(() => ({}));
+
     if (!squareResponse.ok) {
       return res.status(squareResponse.status).json({
         error: "Square booking failed",
