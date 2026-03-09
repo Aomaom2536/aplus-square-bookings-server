@@ -8,8 +8,37 @@ app.get("/", (_req, res) => {
   res.status(200).send("ok");
 });
 
+// Simple info endpoint
 app.get("/square/book", (_req, res) => {
-  res.status(200).send("Square booking endpoint is live. Use POST to create a booking.");
+  res
+    .status(200)
+    .send("Square booking endpoint is live. Use POST /vapi/square/book to create a booking.");
+});
+
+/**
+ * Availability endpoint (check only - does not book)
+ * TODO: wire this to Square availability APIs.
+ */
+app.post("/vapi/square/availability", async (req, res) => {
+  try {
+    const { date } = req.body || {};
+
+    if (!date) {
+      return res.status(400).json({
+        error: "Missing required field",
+        required: ["date"]
+      });
+    }
+
+    // Stub response for now (no fake booking)
+    return res.json({
+      available: false,
+      slots: []
+    });
+  } catch (err) {
+    console.error("Availability error:", err);
+    return res.status(500).json({ error: "Availability check failed" });
+  }
 });
 
 // Booking endpoint
@@ -46,7 +75,7 @@ app.post("/vapi/square/book", async (req, res) => {
       method: "POST",
       headers: {
         "Square-Version": SQUARE_VERSION,
-        "Authorization": `Bearer ${SQUARE_ACCESS_TOKEN}`,
+        Authorization: `Bearer ${SQUARE_ACCESS_TOKEN}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
@@ -64,7 +93,7 @@ app.post("/vapi/square/book", async (req, res) => {
       })
     });
 
-    const data = await squareResponse.json().catch(() => ({}));
+    const data = await squareResponse.json().catch(() => ());
 
     if (!squareResponse.ok) {
       return res.status(squareResponse.status).json({
@@ -78,8 +107,8 @@ app.post("/vapi/square/book", async (req, res) => {
       success: true,
       booking: data.booking || data
     });
-
   } catch (err) {
+    console.error("Booking error:", err);
     return res.status(500).json({
       error: "Server error",
       message: err?.message || String(err)
